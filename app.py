@@ -1,24 +1,43 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 from transformers import pipeline
 
-# Set page configuration
+# Set page configuration first (to avoid StreamlitAPIException)
 st.set_page_config(page_title="MindMitra", page_icon="💬", layout="centered")
-st.title("🧠 MindMitra: Your Mental Health Therapist")
-st.write("This analyzer detects mental health issues from user input and suggests resources. (यह चैटबॉट उपयोगकर्ता इनपुट से मानसिक स्वास्थ्य समस्याओं का पता लगाता है और संसाधन सुझाता है।)")
-st.write("💙 **Talk to me, and I'll try to understand how you're feeling.**")
 
-# Use caching for the model to improve performance and prevent timeouts
+# Use caching for the model to improve performance
 @st.cache_resource
 def load_emotion_classifier():
     try:
-        # Use a smaller distilled model with direct pipeline loading
-        return pipeline("text-classification", 
-                       model="j-hartmann/emotion-english-distilroberta-base",return_all_scores=True)
+        return pipeline(
+            task="text-classification",
+            model="j-hartmann/emotion-english-distilroberta-base", 
+            return_all_scores=True
+        )
     except Exception as e:
         st.error(f"Error loading model: {e}")
         return None
+
+# Set a soothing background gradient
+def set_relaxing_bg():
+    st.markdown(
+        """
+        <style>
+        .stApp {
+            background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 50%, #80deea 100%);
+            background-size: cover;
+        }
+        .stTextArea > div > div > textarea {
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+set_relaxing_bg()
 
 # Mental health categories and keywords
 MENTAL_HEALTH_CATEGORIES = {
@@ -33,82 +52,95 @@ MENTAL_HEALTH_CATEGORIES = {
 }
 
 MENTAL_HEALTH_RESOURCES = {
-    "Depression": ("👨🏻‍⚕️ Dr. Rajesh Verma - +91 98765 43210", "https://www.mentalhealthindia.net/"),
-    "Anxiety": ("👨🏻‍⚕️ Dr. Pooja Sharma - +91 91234 56789", "https://www.mentalhealthindia.net/"),
-    "Sadness": ("👨🏻‍⚕️ Dr. Vikram Patel - +91 88990 11223", "https://www.mentalhealthindia.net/"),
-    "Loneliness": ("👨🏻‍⚕️ Dr. Neha Gupta - +91 99887 77665", "https://www.mentalhealthindia.net/"),
-    "Stress": ("👨🏻‍⚕️ Dr. Arjun Mehta - +91 90909 80808", "https://www.mentalhealthindia.net/"),
-    "Anger": ("👨🏻‍⚕️ Dr. Anjali Deshmukh - +91 81234 56789", "https://www.mentalhealthindia.net/"),
-    "Burnout": ("👨🏻‍⚕️ Dr. Ramesh Iyer - +91 92345 67890", "https://www.mentalhealthindia.net/"),
-    "Self-Harm/Suicidal Thoughts": ("Vandrevala Foundation Helpline - 1860 266 2345", "https://www.snehi.org/")
+    "Depression": ("👨🏻‍⚕️ Dr. Rajesh Verma (डॉ. राजेश वर्मा) - +91 98765 43210", "https://www.mentalhealthindia.net/"),
+    "Anxiety": ("👨🏻‍⚕️ Dr. Pooja Sharma (डॉ. पूजा शर्मा) - +91 91234 56789", "https://www.mentalhealthindia.net/"),
+    "Sadness": ("👨🏻‍⚕️ Dr. Vikram Patel (डॉ. विक्रम पटेल) - +91 88990 11223", "https://www.mentalhealthindia.net/"),
+    "Loneliness": ("👨🏻‍⚕️ Dr. Neha Gupta (डॉ. नेहा गुप्ता) - +91 99887 77665", "https://www.mentalhealthindia.net/"),
+    "Stress": ("👨🏻‍⚕️ Dr. Arjun Mehta (डॉ. अर्जुन मेहता) - +91 90909 80808", "https://www.mentalhealthindia.net/"),
+    "Anger": ("👨🏻‍⚕️ Dr. Anjali Deshmukh (डॉ. अंजलि देशमुख) - +91 81234 56789", "https://www.mentalhealthindia.net/"),
+    "Burnout": ("👨🏻‍⚕️ Dr. Ramesh Iyer (डॉ. रमेश अय्यर) - +91 92345 67890", "https://www.mentalhealthindia.net/"),
+    "Self-Harm/Suicidal Thoughts": ("Vandrevala Foundation Helpline (वंद्रेवाला फाउंडेशन हेल्पलाइन) - 1860 266 2345", "https://www.snehi.org/")
 }
+
+st.title("🧠 MindMitra: Your Mental Health Therapist")
+st.write("This analyzer detects mental health issues from user input and suggests resources. (यह चैटबॉट उपयोगकर्ता इनपुट से मानसिक स्वास्थ्य समस्याओं का पता लगाता है और संसाधन सुझाता है।)")
+st.write("💙 **Talk to me, and I'll try to understand how you're feeling.**")
 
 # Input box
 user_input = st.text_area("💬Type your thoughts here: (कृपया अपनी भावनाएं यहाँ लिखें:)")
+st.write("💙 **Remember, you're not alone. If you're struggling, reach out to someone you trust.**")
 
 # Show a loading indicator while processing
 if st.button("Analyze"):
     if user_input:
         with st.spinner("Analyzing your thoughts..."):
-            # Load the model (cached)
-            classifier = load_emotion_classifier()
+            # Detect issues based on keywords first (this works reliably)
+            detected_issues = []
+            help_resources = []
+
+            for category, keywords in MENTAL_HEALTH_CATEGORIES.items():
+                if any(word in user_input.lower() for word in keywords):
+                    detected_issues.append(category)
+                    if category in MENTAL_HEALTH_RESOURCES:
+                        help_resources.append(MENTAL_HEALTH_RESOURCES[category])
+
+            issue_label = ", ".join(detected_issues) if detected_issues else "No clear issue detected (कोई स्पष्ट समस्या नहीं मिली )👍"
             
-            if classifier:
-                try:
-                    # Get emotion predictions - this returns a list of dictionaries
-                    emotions = classifier(user_input)
+            # Now try to analyze emotions
+            try:
+                # Load the model (cached)
+                classifier = load_emotion_classifier()
+                
+                if classifier:
+                    # Process the text through the model
+                    emotions_result = classifier(user_input)
                     
-                    # Debug info
-                    st.write(f"Debug - emotions type: {type(emotions)}")
-                    
-                    # Fix: Make sure we handle the emotion output format correctly
-                    emotion_scores = {}
-                    if isinstance(emotions, list):
-                        # If it's a list with one item (which is a dict)
-                        if len(emotions) > 0 and isinstance(emotions[0], dict):
-                            emotion_scores = {emotions[0]['label']: emotions[0]['score']}
-                            # If there are multiple labels
-                            if 'label' in emotions[0] and isinstance(emotions[0]['label'], list):
-                                for i, label in enumerate(emotions[0]['label']):
-                                    emotion_scores[label] = emotions[0]['score'][i]
-                    
-                    # Detect issues based on keywords
-                    detected_issues = []
-                    help_resources = []
+                    # Create emotion scores dictionary from the first item results
+                    if emotions_result and len(emotions_result) > 0:
+                        # Sometimes the model returns a list of results for each input
+                        emotion_scores = {}
+                        for emotion_data in emotions_result[0]:
+                            if isinstance(emotion_data, dict) and 'label' in emotion_data and 'score' in emotion_data:
+                                emotion_scores[emotion_data['label']] = emotion_data['score']
 
-                    for category, keywords in MENTAL_HEALTH_CATEGORIES.items():
-                        if any(word in user_input.lower() for word in keywords):
-                            detected_issues.append(category)
-                            if category in MENTAL_HEALTH_RESOURCES:
-                                help_resources.append(MENTAL_HEALTH_RESOURCES[category])
+                        # Display results
+                        st.subheader("📝 Mental Health Classification (मानसिक स्वास्थ्य वर्गीकरण)")
+                        st.write(f"**🔹 Detected Issue (पहचानी गई समस्या):** {issue_label}")
 
-                    issue_label = ", ".join(detected_issues) if detected_issues else "No clear issue detected (कोई स्पष्ट समस्या नहीं मिली )👍"
+                        if help_resources:
+                            st.subheader("📌 Suggested Resources (सुझाए गए संसाधन):")
+                            for contact, link in help_resources:
+                                st.write(f"📞 **{contact}**")
+                                st.markdown(f"🔗 [सहायता लिंक (Help Link)]({link})")
 
-                    st.subheader("📝 Mental Health Classification (मानसिक स्वास्थ्य वर्गीकरण)")
-                    st.write(f"**🔹 Detected Issue (पहचानी गई समस्या):** {issue_label}")
-
-                    if help_resources:
-                        st.subheader("📌 Suggested Resources (सुझाए गए संसाधन):")
-                        for contact, link in help_resources:
-                            st.write(f"📞 **{contact}**")
-                            st.markdown(f"🔗 [सहायता लिंक (Help Link)]({link})")
-
-                    # Show emotion scores if we have any
-                    if emotion_scores:
-                        st.subheader("📊 Emotion Analysis (भावना विश्लेषण )")
-                        st.bar_chart(emotion_scores)
+                        if emotion_scores:
+                            st.subheader("📊 Emotion Analysis (भावना विश्लेषण )")
+                            # Sort emotions by score for better visualization
+                            emotion_df = pd.DataFrame({'emotion': list(emotion_scores.keys()), 
+                                                     'score': list(emotion_scores.values())})
+                            emotion_df = emotion_df.sort_values('score', ascending=False)
+                            st.bar_chart(data=emotion_df.set_index('emotion'))
                     else:
-                        st.warning("Couldn't analyze emotions from the text.")
-                        
-                except Exception as e:
-                    st.error(f"Error analyzing text: {e}")
-                    st.write("Debug info:")
-                    import traceback
-                    st.code(traceback.format_exc())
-            else:
-                st.error("Could not load the emotion classification model. Please try again later.")
+                        raise ValueError("Model returned empty results")
+                else:
+                    raise ValueError("Could not load emotion classifier")
+                
+            except Exception as e:
+                # If emotion analysis fails, still show the keyword-based results
+                st.subheader("📝 Mental Health Classification (मानसिक स्वास्थ्य वर्गीकरण)")
+                st.write(f"**🔹 Detected Issue (पहचानी गई समस्या):** {issue_label}")
+
+                if help_resources:
+                    st.subheader("📌 Suggested Resources (सुझाए गए संसाधन):")
+                    for contact, link in help_resources:
+                        st.write(f"📞 **{contact}**")
+                        st.markdown(f"🔗 [सहायता लिंक (Help Link)]({link})")
+                
+                st.warning("Couldn't analyze emotions from the text.")
+                # Uncomment for debugging
+                # st.error(f"Error: {str(e)}")
     else:
         st.warning("Please enter some text for analysis. (कृपया विश्लेषण के लिए कुछ पाठ दर्ज करें।)")
 
 st.markdown("---")
-st.write("💡 *This chatbot is for informational purposes only. If you are in crisis, please seek professional help.*")
+st.write("💡 *This chatbot is for informational purposes only. If you are in crisis, please seek professional help.👨🏻‍⚕️(यह चैटबॉट केवल सूचना के उद्देश्य से है। यदि आप संकट में हैं, तो कृपया पेशेवर मदद लें।)*")
