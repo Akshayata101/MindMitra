@@ -34,9 +34,6 @@ def set_bg_image(image_url):
         unsafe_allow_html=True
     )
 
-    
-
-set_relaxing_bg()
 
 # Mental health categories and keywords
 MENTAL_HEALTH_CATEGORIES = {
