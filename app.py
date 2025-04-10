@@ -20,7 +20,23 @@ def set_bg_image(image_url):
 
 # Call the function with your image URL (replace with your image link)
 #set_bg_image("https://wallpapercave.com/wp/wp4546470.jpg")
-classifier = pipeline("text-classification", model="j-hartmann/emotion-english-distilroberta-base", return_all_scores=True)
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+import torch
+
+model_name = "j-hartmann/emotion-english-distilroberta-base"
+
+# Load tokenizer and model safely
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForSequenceClassification.from_pretrained(model_name)
+
+# Move model to CPU explicitly
+device = torch.device("cpu")
+model.to(device)
+
+# Now create the pipeline
+from transformers import pipeline
+classifier = pipeline("text-classification", model=model, tokenizer=tokenizer, device=-1)
+
 #10 most common used words for the issues
 MENTAL_HEALTH_CATEGORIES = {
     "Depression": ["hopeless", "useless", "worthless", "empty", "lost", "numb", "fatigued", "drained", "unmotivated", "exhausted"],
