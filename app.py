@@ -4,10 +4,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from transformers import pipeline
 
-# Set page configuration first (to avoid StreamlitAPIException)
 st.set_page_config(page_title="MindMitra", page_icon="💬", layout="centered")
 
-# Use caching for the model to improve performance
 @st.cache_resource
 def load_emotion_classifier():
     try:
@@ -20,19 +18,17 @@ def load_emotion_classifier():
         st.error(f"Error loading model: {e}")
         return None
 
-# Set a soothing background gradient
-def set_relaxing_bg():
+
+def set_bg_image(image_url):
     st.markdown(
-        """
+        f"""
         <style>
-        .stApp {
-            background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 50%, #80deea 100%);
+        .stApp {{
+            background-image: url({image_url});
             background-size: cover;
-        }
-        .stTextArea > div > div > textarea {
-            background-color: rgba(255, 255, 255, 0.8);
-            color: #000080; /* Dark Blue Text */
-        }
+            background-position: center;
+            background-repeat: no-repeat;
+        }}
         </style>
         """,
         unsafe_allow_html=True
@@ -73,11 +69,9 @@ st.write("💙 **Talk to me, and I'll try to understand how you're feeling.**")
 user_input = st.text_area("💬Type your thoughts here: (कृपया अपनी भावनाएं यहाँ लिखें:)")
 st.write("💙 **Remember, you're not alone. If you're struggling, reach out to someone you trust.**")
 
-# Show a loading indicator while processing
 if st.button("Analyze"):
     if user_input:
         with st.spinner("Analyzing your thoughts..."):
-            # Detect issues based on keywords first (this works reliably)
             detected_issues = []
             help_resources = []
 
@@ -89,18 +83,13 @@ if st.button("Analyze"):
 
             issue_label = ", ".join(detected_issues) if detected_issues else "No clear issue detected (कोई स्पष्ट समस्या नहीं मिली )👍"
             
-            # Now try to analyze emotions
             try:
-                # Load the model (cached)
                 classifier = load_emotion_classifier()
                 
                 if classifier:
-                    # Process the text through the model
                     emotions_result = classifier(user_input)
                     
-                    # Create emotion scores dictionary from the first item results
                     if emotions_result and len(emotions_result) > 0:
-                        # Sometimes the model returns a list of results for each input
                         emotion_scores = {}
                         for emotion_data in emotions_result[0]:
                             if isinstance(emotion_data, dict) and 'label' in emotion_data and 'score' in emotion_data:
