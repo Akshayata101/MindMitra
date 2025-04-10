@@ -15,8 +15,7 @@ def load_emotion_classifier():
     try:
         # Use a smaller distilled model with direct pipeline loading
         return pipeline("text-classification", 
-                       model="j-hartmann/emotion-english-distilroberta-base", 
-                       top_k=None)
+                       model="j-hartmann/emotion-english-distilroberta-base")
     except Exception as e:
         st.error(f"Error loading model: {e}")
         return None
@@ -56,12 +55,22 @@ if st.button("Analyze"):
             
             if classifier:
                 try:
+                    # Get emotion predictions - this returns a list of dictionaries
                     emotions = classifier(user_input)
                     
-                    # Convert emotions to dict for visualization
+                    # Debug info
+                    st.write(f"Debug - emotions type: {type(emotions)}")
+                    
+                    # Fix: Make sure we handle the emotion output format correctly
                     emotion_scores = {}
-                    for emotion in emotions:
-                        emotion_scores[emotion['label']] = emotion['score']
+                    if isinstance(emotions, list):
+                        # If it's a list with one item (which is a dict)
+                        if len(emotions) > 0 and isinstance(emotions[0], dict):
+                            emotion_scores = {emotions[0]['label']: emotions[0]['score']}
+                            # If there are multiple labels
+                            if 'label' in emotions[0] and isinstance(emotions[0]['label'], list):
+                                for i, label in enumerate(emotions[0]['label']):
+                                    emotion_scores[label] = emotions[0]['score'][i]
                     
                     # Detect issues based on keywords
                     detected_issues = []
@@ -84,10 +93,18 @@ if st.button("Analyze"):
                             st.write(f"📞 **{contact}**")
                             st.markdown(f"🔗 [सहायता लिंक (Help Link)]({link})")
 
-                    st.subheader("📊 Emotion Analysis (भावना विश्लेषण )")
-                    st.bar_chart(emotion_scores)
+                    # Show emotion scores if we have any
+                    if emotion_scores:
+                        st.subheader("📊 Emotion Analysis (भावना विश्लेषण )")
+                        st.bar_chart(emotion_scores)
+                    else:
+                        st.warning("Couldn't analyze emotions from the text.")
+                        
                 except Exception as e:
                     st.error(f"Error analyzing text: {e}")
+                    st.write("Debug info:")
+                    import traceback
+                    st.code(traceback.format_exc())
             else:
                 st.error("Could not load the emotion classification model. Please try again later.")
     else:
