@@ -15,7 +15,7 @@ def load_emotion_classifier():
     try:
         # Use a smaller distilled model with direct pipeline loading
         return pipeline("text-classification", 
-                       model="j-hartmann/emotion-english-distilroberta-base")
+                       model="j-hartmann/emotion-english-distilroberta-base",return_all_scores=True)
     except Exception as e:
         st.error(f"Error loading model: {e}")
         return None
