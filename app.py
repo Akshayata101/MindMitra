@@ -31,11 +31,14 @@ def set_relaxing_bg():
         }
         .stTextArea > div > div > textarea {
             background-color: rgba(255, 255, 255, 0.8);
+            color: #000080; /* Dark Blue Text */
         }
         </style>
         """,
         unsafe_allow_html=True
     )
+
+    
 
 set_relaxing_bg()
 
